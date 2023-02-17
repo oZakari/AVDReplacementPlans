@@ -14,6 +14,9 @@ param Location string = resourceGroup().location
 @description('Required: Yes | Name of the storage account used by the Function App. This name must be unique across all existing storage account names in Azure. It must be 3 to 24 characters in length and use numbers and lower-case letters only.')
 param StorageAccountName string
 
+@description('Required: Yes | Name of the resource group where the existing storage account was created.')
+param StorageAccountResourceGroup string
+
 //Log Analytics Workspace
 @description('Required: Yes | Name of the Log Analytics Workspace used by the Function App Insights.')
 param LogAnalyticsWorkspaceName string
@@ -218,17 +221,10 @@ var varAppServicePlanName = '${FunctionAppName}-asp'
 
 //------ Resources ------//
 
-// Deploy Storage Account
-resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
+// Reference existing Storage Account
+resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' existing = {
   name: StorageAccountName
-  location: Location
-  kind: 'StorageV2'
-  sku: {
-    name: 'Standard_LRS'
-  }
-  properties: {
-    // TODO: Discuss securing the storage account (firewall)
-  }
+  scope: resourceGroup(StorageAccountResourceGroup)
 }
 
 // Deploy Log Analytics Workspace

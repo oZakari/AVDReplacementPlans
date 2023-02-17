@@ -38,7 +38,7 @@ $deployParams = @{
     Name              = "DeployFunctionApp-$timestamp"
     ResourceGroupName = $ResourceGroupName
 }
-$deploy = New-AzResourceGroupDeployment @deployParams @BicepParams -Verbose -ErrorAction Stop
+$deploy = New-AzResourceGroupDeployment -Confirm @deployParams @BicepParams -Verbose -ErrorAction Stop
 
 Write-PSFMessage -Level Host -Message "Azure resources deployed."
 
