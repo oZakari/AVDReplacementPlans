@@ -22,7 +22,8 @@ function Get-SHRLatestImageVersion {
                 Skus          = $ImageReference.sku
             }
             Write-PSFMessage -Level Host -Message "Getting latest version of image {0} {1} {2} {3}" -StringValues $paramGetAzVMImage.Location, $paramGetAzVMImage.PublisherName, $paramGetAzVMImage.Offer, $paramGetAzVMImage.Skus
-            $azImageVersion = (Get-AzVMImage @paramGetAzVMImage -Top 1).Version
+
+            $azImageVersion = (Get-AzVMImage @paramGetAzVMImage | Sort-Object -Property {[version] $_.Version} -Descending| Select-Object -First 1).Version
             Write-PSFMessage -Level Host -Message "Latest version of image is {0}" -StringValues $azImageVersion
 
             if ($azImageVersion -match "\d+\.\d+\.(?<Year>\d{2})(?<Month>\d{2})(?<Day>\d{2})") {
@@ -37,8 +38,8 @@ function Get-SHRLatestImageVersion {
     elseif ($ImageReference.Id) {
         # Shared Image Gallery
         Write-PSFMessage -Level Host -Message 'Image is from Shared Image Gallery: {0}' -StringValues $ImageReference.Id
-        $imageDefinitionResourceIdPattern = '^\/subscriptions\/(?<subscription>[a-z0-9\-]+)\/resourceGroups\/(?<resourceGroup>[^/]+)\/providers\/Microsoft\.Compute\/galleries\/(?<gallery>[^/]+)\/images\/(?<image>[^/]+)$'
-        $imageVersionResourceIdPattern = '^\/subscriptions\/(?<subscription>[a-z0-9\-]+)\/resourceGroups\/(?<resourceGroup>[^/]+)\/providers\/Microsoft\.Compute\/galleries\/(?<gallery>[^/]+)\/images\/(?<image>[^/]+)\/versions\/(?<version>[^/]+)$'
+        $imageDefinitionResourceIdPattern = '^\/subscriptions\/(?<subscription>[a-z0-9\-]+)\/resourceGroups\/(?<resourceGroup>[^\/]+)\/providers\/Microsoft\.Compute\/galleries\/(?<gallery>[^\/]+)\/images\/(?<image>[^\/]+)$'
+        $imageVersionResourceIdPattern = '^\/subscriptions\/(?<subscription>[a-z0-9\-]+)\/resourceGroups\/(?<resourceGroup>[^\/]+)\/providers\/Microsoft\.Compute\/galleries\/(?<gallery>[^\/]+)\/images\/(?<image>[^\/]+)\/versions\/(?<version>[^\/]+)$'
         if ($ImageReference.Id -match $imageDefinitionResourceIdPattern) {
             Write-PSFMessage -Level Host -Message 'Image reference is an Image Definition resource.'
             $imageSubscriptionId = $Matches.subscription
@@ -71,7 +72,7 @@ function Get-SHRLatestImageVersion {
                 Set-AzContext -SubscriptionId $currentSubscriptionId
             }
         }
-        if ($ImageReference.Id -match $imageVersionResourceIdPattern ) {
+        elseif ($ImageReference.Id -match $imageVersionResourceIdPattern ) {
             Write-PSFMessage -Level Host -Message 'Image reference is an Image Version resource.'
             $imageVersion = Get-AzGalleryImageVersion -ResourceId $ImageReference.Id
             $azImageVersion = $imageVersion.Name

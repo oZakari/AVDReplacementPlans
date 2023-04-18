@@ -35,9 +35,9 @@ param HostPoolResourceGroupName string = resourceGroup().name
 param HostPoolName string
 
 @description('Required: No | URL of the FunctionApp.zip file. This is the zip file containing the Function App code. | Default: The latest release of the Function App code.')
-param FunctionAppZipUrl string = 'https://github.com/WillyMoselhy/AVDReplacementPlans/releases/download/v0.1.3/FunctionApp.zip'
+param FunctionAppZipUrl string = 'https://github.com/WillyMoselhy/AVDReplacementPlans/releases/download/v0.1.5/FunctionApp.zip'
 
-@description('Required: No | If true, will apply tags for Include In Auto Repalce and Deployment Timestamp to existing session hosts. This will not enable automatic deletion of existing session hosts. | Default: True.')
+@description('Required: No | If true, will apply tags for Include In Auto Replace and Deployment Timestamp to existing session hosts. This will not enable automatic deletion of existing session hosts. | Default: True.')
 param FixSessionHostTags bool = true
 
 @description('Required: No | Tag name used to indicate that a session host should be included in the automatic replacement process. | Default: IncludeInAutoReplace.')
@@ -49,8 +49,8 @@ param TagDeployTimestamp string = 'AutoReplaceDeployTimestamp'
 @description('Required: No | Tag name used to indicate drain timestamp of session host pending deletion. | Default: AutoReplacePendingDrainTimestamp.')
 param TagPendingDrainTimestamp string = 'AutoReplacePendingDrainTimestamp'
 
-@description('Required: No | Tag name used to exclude session host from Scaling Plan activities. | Default: None')
-param TagScalingPlanExclusionTag string = ' ' //This is a string with a single space.
+@description('Required: No | Tag name used to exclude session host from Scaling Plan activities. | Default: ScalingPlanExclusion')
+param TagScalingPlanExclusionTag string = 'ScalingPlanExclusion'
 
 @description('Required: No | Target age of session hosts in days. | Default:  45 days.')
 param TargetVMAgeDays int = 45
@@ -90,6 +90,16 @@ param ReplaceSessionHostOnNewImageVersion bool = true
 
 @description('Required: No | Delay in days before replacing session hosts when a new image version is detected. | Default: 0 (no delay).')
 param ReplaceSessionHostOnNewImageVersionDelayDays int = 0
+
+@description('Required: No | App Service Plan Name | Default: Y1 for consumption based plan')
+param AppPlanName string = 'Y1'
+
+@description('Required: No | App Service Plan Tier | Default: Dynamic for consumption based plan')
+param AppPlanTier string = 'Dynamic'
+
+@description('Required: No | Allow deleting session hosts if count exceeds target. | Default: true')
+param AllowDownsizing bool = true
+
 //-------//
 
 //------ Variables ------//
@@ -214,6 +224,10 @@ var varFunctionAppSettings = [
     name: '_ReplaceSessionHostOnNewImageVersionDelayDays'
     value: ReplaceSessionHostOnNewImageVersionDelayDays
   }
+  {
+    name: '_AllowDownsizing'
+    value: AllowDownsizing
+  }
 ]
 
 var varAppServicePlanName = '${FunctionAppName}-asp'
@@ -244,8 +258,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: varAppServicePlanName
   location: Location
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: AppPlanName
+    tier: AppPlanTier
   }
 }
 
@@ -278,6 +292,7 @@ resource functionApp 'Microsoft.Web/sites@2022-03-01' = {
       powerShellVersion: '7.2'
       netFrameworkVersion: 'v6.0'
       appSettings: varFunctionAppSettings
+      ftpsState: 'Disabled'
     }
   }
   resource deployFromZip 'extensions@2022-03-01' = {
